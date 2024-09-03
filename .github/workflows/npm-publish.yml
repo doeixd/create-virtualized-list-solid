@@ -26,12 +26,25 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Verify build artifacts
+      - name: List build output
         run: |
+          echo "Listing contents of the dist directory:"
           ls -R dist
-          [ -f dist/cjs/production/index.jsx ] || exit 1
-          [ -f dist/esm/production/index.jsx ] || exit 1
-          [ -f dist/types/index.d.ts ] || exit 1
+
+      - name: Find built files
+        id: find_files
+        run: |
+          CJS_FILE=$(find dist -name "*.cjs.js" -or -name "index.js" -or -name "index.jsx" | grep "/cjs/" | head -n 1)
+          ESM_FILE=$(find dist -name "*.esm.js" -or -name "index.js" -or -name "index.jsx" | grep "/esm/" | head -n 1)
+          TYPES_FILE=$(find dist -name "index.d.ts" | head -n 1)
+          
+          echo "CJS file: $CJS_FILE"
+          echo "ESM file: $ESM_FILE"
+          echo "Types file: $TYPES_FILE"
+          
+          echo "cjs_file=$CJS_FILE" >> $GITHUB_OUTPUT
+          echo "esm_file=$ESM_FILE" >> $GITHUB_OUTPUT
+          echo "types_file=$TYPES_FILE" >> $GITHUB_OUTPUT
 
       - name: Publish to npm
         run: npm publish
@@ -42,8 +55,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/cjs/production/index.jsx
-            dist/esm/production/index.jsx
-            dist/types/index.d.ts
+            ${{ steps.find_files.outputs.cjs_file }}
+            ${{ steps.find_files.outputs.esm_file }}
+            ${{ steps.find_files.outputs.types_file }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

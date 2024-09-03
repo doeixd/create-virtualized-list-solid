@@ -246,9 +246,3 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 This project is licensed under the MIT License.
 
-
-## Releases
-
-`npm run release -- --release-as minor` for a minor version bump
-`npm run release -- --release-as major` for a major version bump
-`npm run release -- --prerelease` for a prerelease version
