@@ -1,5 +1,5 @@
 {
-  "name": "create-virtualized-list-solid",
+  "name": "@doeixd/create-virtualized-list-solid",
   "version": "1.0.4",
   "files": [
     "dist",
@@ -32,7 +32,7 @@
     "@tanstack/solid-virtual": "^3.10.6"
   },
   "scripts": {
-    "release": "standard-version && git push --follow-tags origin main && npm publish",
+    "release": "standard-version && git push --follow-tags origin main",
     "prepublishOnly": "pridepack clean && pridepack build",
     "build": "pridepack build",
     "type-check": "pridepack check",
@@ -49,11 +49,12 @@
   },
   "homepage": "https://github.com/doeixd/create-virtualized-list-solid#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/solid-virtualized-list-wrapper/issues"
+    "url": "https://github.com/doeixd/create-virtualized-list-solid/issues"
   },
   "author": "Patrick Glenn",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
     "@kobalte/utils": "^0.9.1"
