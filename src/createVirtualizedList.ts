@@ -9,7 +9,7 @@ type ObjectWithKey = { [key: string]: any };
 export type KeyFunction<T> = (item: T, index?: number) => string | number;
 
 
-export interface VirtualizedListArgs<T> extends VirtualizerOptions<Element, Element> {
+export interface VirtualizedListArgs<T, ScrollElement extends Element = Element, ItemElement extends Element = Element> extends Partial<VirtualizerOptions<ScrollElement, ItemElement>> {
   id?: string;
   data: () => T[];
   determineKey?: KeyFunction<T>;
