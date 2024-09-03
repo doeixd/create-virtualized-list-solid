@@ -1,6 +1,6 @@
 {
   "name": "create-virtualized-list-solid",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "files": [
     "dist",
     "src"
@@ -32,7 +32,7 @@
     "@tanstack/solid-virtual": "^3.10.6"
   },
   "scripts": {
-    "release": "standard-version && git push --follow-tags origin main",
+    "release": "standard-version && git push --follow-tags origin main && npm publish",
     "prepublishOnly": "pridepack clean && pridepack build",
     "build": "pridepack build",
     "type-check": "pridepack check",
