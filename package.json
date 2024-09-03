@@ -32,7 +32,10 @@
     "@tanstack/solid-virtual": "^3.10.6"
   },
   "scripts": {
-    "release": "standard-version && git push --follow-tags origin main",
+    "release": "npm run release:patch",
+    "release:patch": "npm version patch && git push --follow-tags origin main",
+    "release:minor": "npm version minor && git push --follow-tags origin main",
+    "release:major": "npm version major && git push --follow-tags origin main",
     "prepublishOnly": "pridepack clean && pridepack build",
     "build": "pridepack build",
     "type-check": "pridepack check",
