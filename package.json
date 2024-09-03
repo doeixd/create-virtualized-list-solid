@@ -53,8 +53,7 @@
   },
   "author": "Patrick Glenn",
   "publishConfig": {
-    "access": "public",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "dependencies": {
     "@kobalte/utils": "^0.9.1"
