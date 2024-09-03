@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -25,6 +25,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Verify build artifacts
+        run: |
+          ls -R dist
+          [ -f dist/cjs/production/index.jsx ] || exit 1
+          [ -f dist/esm/production/index.jsx ] || exit 1
+          [ -f dist/types/index.d.ts ] || exit 1
 
       - name: Publish to npm
         run: npm publish

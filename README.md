@@ -13,13 +13,13 @@ A helpful wrapper around `@tanstack/solid-virtual` that simplifies the creation 
 ## Installation
 
 ```bash
-npm install create-virtualized-list-solid
+npm install @doeixd/create-virtualized-list-solid
 ```
 
 ## Basic Usage
 
 ```jsx
-import { createVirtualizedList } from 'create-virtualized-list-solid';
+import { createVirtualizedList } from '@doeixd/create-virtualized-list-solid';
 import { For } from 'solid-js';
 
 const MyList = () => {
@@ -135,7 +135,7 @@ const VirtualList = () => {
 #### After (using our wrapper):
 
 ```jsx
-import { createVirtualizedList } from 'solid-virtualized-list-wrapper';
+import { createVirtualizedList } from '@doeixd/solid-virtualized-list-wrapper';
 import { For } from 'solid-js';
 
 const VirtualList = () => {
