@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '16'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -25,11 +25,6 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: List build output
-        run: |
-          echo "Listing contents of the dist directory:"
-          ls -R dist
 
       - name: Find built files
         id: find_files
@@ -51,12 +46,43 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            ${{ steps.find_files.outputs.cjs_file }}
-            ${{ steps.find_files.outputs.esm_file }}
-            ${{ steps.find_files.outputs.types_file }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload CJS Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_files.outputs.cjs_file }}
+          asset_name: index.cjs.js
+          asset_content_type: application/javascript
+
+      - name: Upload ESM Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_files.outputs.esm_file }}
+          asset_name: index.esm.js
+          asset_content_type: application/javascript
+
+      - name: Upload Types Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_files.outputs.types_file }}
+          asset_name: index.d.ts
+          asset_content_type: application/typescript
