@@ -1,6 +1,6 @@
 {
   "name": "@doeixd/create-virtualized-list-solid",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "files": [
     "dist",
     "src"
