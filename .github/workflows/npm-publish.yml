@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '16'
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
         run: npm ci
@@ -26,25 +26,21 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Find built files
-        id: find_files
-        run: |
-          CJS_FILE=$(find dist -name "*.cjs.js" -or -name "index.js" -or -name "index.jsx" | grep "/cjs/" | head -n 1)
-          ESM_FILE=$(find dist -name "*.esm.js" -or -name "index.js" -or -name "index.jsx" | grep "/esm/" | head -n 1)
-          TYPES_FILE=$(find dist -name "index.d.ts" | head -n 1)
-          
-          echo "CJS file: $CJS_FILE"
-          echo "ESM file: $ESM_FILE"
-          echo "Types file: $TYPES_FILE"
-          
-          echo "cjs_file=$CJS_FILE" >> $GITHUB_OUTPUT
-          echo "esm_file=$ESM_FILE" >> $GITHUB_OUTPUT
-          echo "types_file=$TYPES_FILE" >> $GITHUB_OUTPUT
-
       - name: Publish to npm
-        run: npm publish
+        run: |
+          echo "registry=https://registry.npmjs.org/" > .npmrc
+          echo "@doeixd:registry=https://registry.npmjs.org/" >> .npmrc
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to GitHub Packages
+        run: |
+          echo "registry=https://npm.pkg.github.com/@doeixd" > .npmrc
+          echo "@doeixd:registry=https://npm.pkg.github.com" >> .npmrc
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         id: create_release
@@ -57,13 +53,13 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload CJS Asset
+      - name: Upload Release Assets
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_files.outputs.cjs_file }}
+          asset_path: ./dist/cjs/production/index.jsx
           asset_name: index.cjs.js
           asset_content_type: application/javascript
 
@@ -73,7 +69,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_files.outputs.esm_file }}
+          asset_path: ./dist/esm/production/index.jsx
           asset_name: index.esm.js
           asset_content_type: application/javascript
 
@@ -83,6 +79,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_files.outputs.types_file }}
+          asset_path: ./dist/types/index.d.ts
           asset_name: index.d.ts
           asset_content_type: application/typescript
