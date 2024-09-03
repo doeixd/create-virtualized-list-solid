@@ -1,4 +1,4 @@
-import { createVirtualizer, VirtualItem, VirtualizerOptions, Virtualizer, Range, Rect } from "@tanstack/solid-virtual";
+import { createVirtualizer, VirtualItem, VirtualizerOptions } from "@tanstack/solid-virtual";
 import { createUniqueId, mergeProps, createMemo, createSignal, onMount, untrack } from "solid-js";
 import { mergeRefs, createGenerateId } from "@kobalte/utils";
 import { isServer } from "solid-js/web";
@@ -92,35 +92,48 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     return item as unknown as string | number;
   });
 
-  const horizontal = () => args.horizontal ?? false;
+  const horizontal = () => args?.horizontal ?? false;
 
   const [rootElement, setRootElement] = createSignal<Element | null>(null);
 
   const getScrollElement = () => rootElement();
 
-  const estimateSize = createMemo(() => args.estimateSize || ((index: number) => args.itemHeight || 50));
+  const estimateSize = createMemo(() => args?.estimateSize || ((index: number) => args.itemHeight || 50));
 
   const initialRect = () => ({
-    width: args.width || args.initialRect?.width || 600,
-    height: args.height || args.initialRect?.height || 400,
+    width: args?.width ?? args.initialRect?.width ?? 600,
+    height: args?.height ?? args.initialRect?.height ?? 400,
   });
 
-  const options: VirtualizerOptions<Element, Element> = {
+  const measureElement = createMemo(() => {
+    if (isServer) return undefined;
+
+    if (args.measureElement) return args.measureElement;
+    if (navigator.userAgent.indexOf('Firefox') === -1) {
+      return (element: Element) => {
+        return element?.getBoundingClientRect()[horizontal() ? 'width' : 'height'];
+      };
+    }
+
+    return undefined;
+  });
+
+  const options: VirtualizerOptions<Element, Element> = mergeProps({
     get count() {
       return count()
     },
     getScrollElement,
     estimateSize: estimateSize(),
-    overscan: args.overscan ?? 5,
+    overscan: args?.overscan ?? 5,
     horizontal: horizontal(),
-    paddingStart: args.paddingStart ?? 0,
-    paddingEnd: args.paddingEnd ?? 10,
-    scrollPaddingStart: args.scrollPaddingStart ?? 0,
-    scrollPaddingEnd: args.scrollPaddingEnd ?? 0,
-    initialRect: args.initialRect ?? initialRect(),
-    initialOffset: args.initialOffset ?? 0,
+    paddingStart: args?.paddingStart ?? 0,
+    paddingEnd: args?.paddingEnd ?? 10,
+    scrollPaddingStart: args?.scrollPaddingStart ?? 0,
+    scrollPaddingEnd: args?.scrollPaddingEnd ?? 0,
+    initialRect: args?.initialRect ?? initialRect(),
+    initialOffset: args?.initialOffset ?? 0,
     onChange: args.onChange,
-    scrollToFn: args.scrollToFn || ((offset, { behavior }) => {
+    scrollToFn: args?.scrollToFn ?? ((offset, { behavior }) => {
       const scrollElement = getScrollElement();
       if (scrollElement) {
         scrollElement.scrollTo({
@@ -129,7 +142,7 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
         });
       }
     }),
-    observeElementRect: args.observeElementRect || ((instance, cb) => {
+    observeElementRect: args?.observeElementRect ?? ((instance, cb) => {
       const scrollElement = getScrollElement();
       if (!scrollElement) return;
       
@@ -142,7 +155,7 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
       
       return () => resizeObserver.disconnect();
     }),
-    observeElementOffset: args.observeElementOffset || ((instance, cb) => {
+    observeElementOffset: args?.observeElementOffset ?? ((instance, cb) => {
       const scrollElement = getScrollElement();
       if (!scrollElement) return;
       
@@ -159,19 +172,19 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
       
       return () => scrollElement.removeEventListener('scroll', handleScroll);
     }),
-    debug: args.debug,
-    measureElement: args.measureElement,
+    debug: args?.debug,
+    measureElement: measureElement(),
     getItemKey: (index: number) => determineKey(data()[index], index),
-    rangeExtractor: args.rangeExtractor,
-    scrollMargin: args.scrollMargin,
-    gap: args.gap,
-    indexAttribute: args.indexAttribute,
-    initialMeasurementsCache: args.initialMeasurementsCache,
-    lanes: args.lanes,
-    isScrollingResetDelay: args.isScrollingResetDelay,
-    enabled: args.enabled,
-    isRtl: args.isRtl,
-  };
+    rangeExtractor: args?.rangeExtractor,
+    scrollMargin: args?.scrollMargin,
+    gap: args?.gap,
+    indexAttribute: args?.indexAttribute,
+    initialMeasurementsCache: args?.initialMeasurementsCache,
+    lanes: args?.lanes,
+    isScrollingResetDelay: args?.isScrollingResetDelay,
+    enabled: args?.enabled,
+    isRtl: args?.isRtl,
+  }, args)
 
   const virtualizer = createVirtualizer(options);
 
@@ -180,8 +193,8 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
       'overflow-y': horizontal() ? 'hidden' : 'auto',
       'overflow-x': horizontal() ? 'auto' : 'hidden',
       position: 'relative',
-      height: args.height ? `${args.height}px` : '400px',
-      width: args.width ? `${args.width}px`: '100%',
+      height: args?.height ? `${args.height}px` : '400px',
+      width: args?.width ? `${args.width}px`: '100%',
     };
     const horizontalAttr = horizontal() ? "" : undefined;
 
@@ -228,7 +241,7 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
           ref: mergeRefs((el: Element) => { 
             if (el) virtualizer.measureElement(el);
           }, args.itemProps?.ref),
-        }, args.itemProps || {});
+        }, args?.itemProps ?? {});
 
         const isLast = virtualItem.index === count() - 1;
         const isEven = virtualItem.index % 2 === 0;

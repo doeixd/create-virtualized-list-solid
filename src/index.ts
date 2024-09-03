@@ -1,4 +1,4 @@
-import Hello from './createVirtualizedList';
+import Mod from './createVirtualizedList';
 
-export { HelloProps } from './createVirtualizedList';
-export default Hello;
+export { createVirtualizedList } from './createVirtualizedList';
+export default Mod;

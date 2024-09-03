@@ -9,8 +9,8 @@
     "sourceMap": true,
     "rootDir": "./src",
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "bundler",
@@ -19,6 +19,7 @@
     "esModuleInterop": true,
     "target": "es2018",
     "useDefineForClassFields": false,
-    "declarationMap": true
+    "declarationMap": true,
+    "allowUnusedLabels": true
   }
 }

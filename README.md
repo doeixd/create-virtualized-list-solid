@@ -47,6 +47,128 @@ const MyList = () => {
 }
 ```
 
+## Why is this hepful?
+
+### Root and Container Elements
+
+In a virtualized list, two key elements are required:
+
+1. **Root Element**: This is the scrollable viewport. It determines the visible area of the list.
+2. **Container Element**: This is a tall element that provides the full scrollable height/width of the list.
+
+Manually setting up these elements with the correct properties can be tedious and error-prone. Our wrapper generates the necessary props for both elements, ensuring:
+
+- Correct sizing and positioning
+- Proper event handling for virtualization
+- Consistent styling defaults
+
+By using `{...vList.root}` and `{...vList.container}`, you automatically apply all necessary properties without having to manage them yourself.
+
+### The `list.items` Helper
+
+The `list.items` helper is a function that wraps each item in your list, providing:
+
+- Correct positioning within the container
+- Access to the virtual item data
+- Additional useful properties like `isLast` and `isEven`
+
+This helper simplifies the rendering of each item and provides a consistent interface for working with your list data.
+
+### Before and After Comparison
+
+Here's how the wrapper simplifies your code:
+
+#### Before (using @tanstack/solid-virtual directly):
+
+```jsx
+import { createVirtualizer } from '@tanstack/solid-virtual';
+import { createSignal, For } from 'solid-js';
+
+const VirtualList = () => {
+  const [listItems] = createSignal(Array.from({ length: 10000 }, (_, i) => `Item ${i}`));
+  const [parentRef, setParentRef] = createSignal(null);
+
+  const virtualizer = createVirtualizer({
+    count: listItems().length,
+    getScrollElement: () => parentRef(),
+    estimateSize: () => 35,
+    overscan: 5,
+  });
+
+  return (
+    <div 
+      ref={setParentRef} 
+      style={{
+        height: '400px', 
+        overflow: 'auto'
+      }}
+    >
+      <div 
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: '100%', 
+          position: 'relative'
+        }}
+      >
+        <For each={virtualizer.getVirtualItems()}>
+          {(virtualRow) => (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              {listItems()[virtualRow.index]}
+            </div>
+          )}
+        </For>
+      </div>
+    </div>
+  );
+};
+```
+
+#### After (using our wrapper):
+
+```jsx
+import { createVirtualizedList } from 'solid-virtualized-list-wrapper';
+import { For } from 'solid-js';
+
+const VirtualList = () => {
+  const listItems = () => Array.from({ length: 10000 }, (_, i) => `Item ${i}`);
+
+  const vList = createVirtualizedList({
+    data: listItems,
+  });
+
+  return (
+    <div {...vList.root}>
+      <div {...vList.container}>
+        <For each={vList.item}>
+          {vList.items((item) => (
+            <div {...item.props}>{item.data}</div>
+          ))}
+        </For>
+      </div>
+    </div>
+  );
+};
+```
+
+As you can see, the wrapper:
+
+1. Eliminates the need to manually set up the virtualizer
+2. Automatically generates necessary props for root and container elements
+3. Provides a simpler interface for rendering items
+4. Handles positioning and styling of items internally
+5. Reduces boilerplate and potential for errors
+
+By abstracting these details, the wrapper allows you to focus on your list content rather than the complexities of virtualization.
+
 ## API
 
 ### `createVirtualizedList(args)`

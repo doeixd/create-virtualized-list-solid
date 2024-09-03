@@ -56,5 +56,22 @@
   },
   "dependencies": {
     "@kobalte/utils": "^0.9.1"
+  },
+  "types": "./dist/types/index.d.ts",
+  "main": "./dist/cjs/production/index.jsx",
+  "module": "./dist/esm/production/index.jsx",
+  "exports": {
+    ".": {
+      "development": {
+        "require": "./dist/cjs/development/index.jsx",
+        "import": "./dist/esm/development/index.jsx"
+      },
+      "require": "./dist/cjs/production/index.jsx",
+      "import": "./dist/esm/production/index.jsx",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {}
   }
 }
