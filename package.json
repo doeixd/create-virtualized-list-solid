@@ -43,12 +43,12 @@
   "private": false,
   "description": "A helpful wrapper around @tanstack/solid-virtual for easier creation of virtualized lists in Solid.js",
   "repository": {
-    "url": "",
+    "url": "https://github.com/doeixd/create-virtualized-list-solid.git",
     "type": "git"
   },
-  "homepage": "",
+  "homepage": "https://github.com/doeixd/create-virtualized-list-solid#readme",
   "bugs": {
-    "url": ""
+    "url": "https://github.com/yourusername/solid-virtualized-list-wrapper/issues"
   },
   "author": "Patrick Glenn",
   "publishConfig": {
