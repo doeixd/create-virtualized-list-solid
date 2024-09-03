@@ -1,0 +1,60 @@
+{
+  "name": "create-virtualized-list-solid",
+  "version": "1.0.0",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "MIT",
+  "keywords": [
+    "solid-js",
+    "virtualized",
+    "list",
+    "virtual-scroll",
+    "tanstack",
+    "wrapper",
+    "virtual list",
+    "solid virtual",
+    "pridepack"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "pridepack": "2.6.1",
+    "solid-js": "^1.8.22",
+    "tslib": "^2.6.3",
+    "typescript": "^5.5.3"
+  },
+  "peerDependencies": {
+    "solid-js": "^1.8",
+    "@tanstack/solid-virtual": "^3.10.6"
+  },
+  "scripts": {
+    "prepublishOnly": "pridepack clean && pridepack build",
+    "build": "pridepack build",
+    "type-check": "pridepack check",
+    "clean": "pridepack clean",
+    "watch": "pridepack watch",
+    "start": "pridepack start",
+    "dev": "pridepack dev"
+  },
+  "private": false,
+  "description": "A helpful wrapper around @tanstack/solid-virtual for easier creation of virtualized lists in Solid.js",
+  "repository": {
+    "url": "",
+    "type": "git"
+  },
+  "homepage": "",
+  "bugs": {
+    "url": ""
+  },
+  "author": "Patrick Glenn",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@kobalte/utils": "^0.9.1"
+  }
+}
