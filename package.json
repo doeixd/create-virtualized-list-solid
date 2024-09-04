@@ -22,11 +22,14 @@
   ],
   "devDependencies": {
     "@types/node": "^20.14.9",
+    "jsdom": "^25.0.0",
     "pridepack": "2.6.1",
     "solid-js": "^1.8.22",
     "standard-version": "^9.5.0",
     "tslib": "^2.6.3",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vite-plugin-solid": "^2.10.2",
+    "vitest": "^2.0.5"
   },
   "peerDependencies": {
     "@tanstack/solid-virtual": "^3.10.6",
@@ -44,7 +47,8 @@
     "clean": "pridepack clean",
     "watch": "pridepack watch",
     "start": "pridepack start",
-    "dev": "pridepack dev"
+    "dev": "pridepack dev",
+    "test": "vitest"
   },
   "private": false,
   "description": "A helpful wrapper around @tanstack/solid-virtual for easier creation of virtualized lists in Solid.js",
