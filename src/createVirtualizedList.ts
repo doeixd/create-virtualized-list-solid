@@ -118,75 +118,82 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     return undefined;
   });
 
-  const options: VirtualizerOptions<Element, Element> = mergeProps({
-    get count() {
-      return count()
-    },
-    getScrollElement,
-    estimateSize: estimateSize(),
-    overscan: args?.overscan ?? 5,
-    horizontal: horizontal(),
-    paddingStart: args?.paddingStart ?? 0,
-    paddingEnd: args?.paddingEnd ?? 10,
-    scrollPaddingStart: args?.scrollPaddingStart ?? 0,
-    scrollPaddingEnd: args?.scrollPaddingEnd ?? 0,
-    initialRect: args?.initialRect ?? initialRect(),
-    initialOffset: args?.initialOffset ?? 0,
-    onChange: args.onChange,
-    scrollToFn: args?.scrollToFn ?? ((offset, { behavior }) => {
-      const scrollElement = getScrollElement();
-      if (scrollElement) {
-        scrollElement.scrollTo({
-          [horizontal() ? 'left' : 'top']: offset,
-          behavior,
-        });
-      }
-    }),
-    observeElementRect: args?.observeElementRect ?? ((instance, cb) => {
-      const scrollElement = getScrollElement();
-      if (!scrollElement) return;
-      
-      const resizeObserver = new ResizeObserver(() => {
-        const rect = scrollElement.getBoundingClientRect();
-        cb(rect);
-      });
-      
-      resizeObserver.observe(scrollElement);
-      
-      return () => resizeObserver.disconnect();
-    }),
-    observeElementOffset: args?.observeElementOffset ?? ((instance, cb) => {
-      const scrollElement = getScrollElement();
-      if (!scrollElement) return;
-      
-      const handleScroll = () => {
-        const offset = horizontal()
-          ? scrollElement.scrollLeft
-          : scrollElement.scrollTop;
-        cb(offset, true);
-      };
-      
-      scrollElement.addEventListener('scroll', handleScroll, {
-        passive: true,
-      });
-      
-      return () => scrollElement.removeEventListener('scroll', handleScroll);
-    }),
-    debug: args?.debug,
-    measureElement: measureElement(),
-    getItemKey: (index: number) => determineKey(data()[index], index),
-    rangeExtractor: args?.rangeExtractor,
-    scrollMargin: args?.scrollMargin,
-    gap: args?.gap,
-    indexAttribute: args?.indexAttribute,
-    initialMeasurementsCache: args?.initialMeasurementsCache,
-    lanes: args?.lanes,
-    isScrollingResetDelay: args?.isScrollingResetDelay,
-    enabled: args?.enabled,
-    isRtl: args?.isRtl,
-  }, args)
+  const reactiveArgs = createMemo(() => args)
 
-  const virtualizer = createVirtualizer(options);
+  const options: () => VirtualizerOptions<Element, Element> = createMemo(() => {
+    const currentArgs = reactiveArgs()
+    
+    return mergeProps({
+      get count() {
+        return count()
+      },
+      getScrollElement,
+      estimateSize: estimateSize(),
+      overscan: currentArgs?.overscan ?? 5,
+      horizontal: horizontal(),
+      paddingStart: currentArgs?.paddingStart ?? 0,
+      paddingEnd: currentArgs?.paddingEnd ?? 10,
+      scrollPaddingStart: currentArgs?.scrollPaddingStart ?? 0,
+      scrollPaddingEnd: currentArgs?.scrollPaddingEnd ?? 0,
+      initialRect: currentArgs?.initialRect ?? initialRect(),
+      initialOffset: currentArgs?.initialOffset ?? 0,
+      onChange: currentArgs.onChange,
+      scrollToFn: currentArgs?.scrollToFn ?? ((offset, { behavior }) => {
+        const scrollElement = getScrollElement();
+        if (scrollElement) {
+          scrollElement.scrollTo({
+            [horizontal() ? 'left' : 'top']: offset,
+            behavior,
+          });
+        }
+      }),
+      observeElementRect: currentArgs?.observeElementRect ?? ((instance, cb) => {
+        const scrollElement = getScrollElement();
+        if (!scrollElement) return;
+        
+        const resizeObserver = new ResizeObserver(() => {
+          const rect = scrollElement.getBoundingClientRect();
+          cb(rect);
+        });
+        
+        resizeObserver.observe(scrollElement);
+        
+        return () => resizeObserver.disconnect();
+      }),
+      observeElementOffset: currentArgs?.observeElementOffset ?? ((instance, cb) => {
+        const scrollElement = getScrollElement();
+        if (!scrollElement) return;
+        
+        const handleScroll = () => {
+          const offset = horizontal()
+            ? scrollElement.scrollLeft
+            : scrollElement.scrollTop;
+          cb(offset, true);
+        };
+        
+        scrollElement.addEventListener('scroll', handleScroll, {
+          passive: true,
+        });
+        
+        return () => scrollElement.removeEventListener('scroll', handleScroll);
+      }),
+      debug: currentArgs?.debug,
+      measureElement: measureElement(),
+      getItemKey: (index: number) => determineKey(data()[index], index),
+      rangeExtractor: currentArgs?.rangeExtractor,
+      scrollMargin: currentArgs?.scrollMargin,
+      gap: currentArgs?.gap,
+      indexAttribute: currentArgs?.indexAttribute,
+      initialMeasurementsCache: currentArgs?.initialMeasurementsCache,
+      lanes: currentArgs?.lanes,
+      isScrollingResetDelay: currentArgs?.isScrollingResetDelay,
+      enabled: currentArgs?.enabled,
+      isRtl: currentArgs?.isRtl,
+    }, currentArgs)
+  }
+)
+
+  const virtualizer = createMemo(() => createVirtualizer(options()))
 
   const rootProps = createMemo(() => {
     const defaultStyle = {
@@ -211,8 +218,8 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     const containerId = generateId('list');
     const defaultStyle = {
       position: 'relative',
-      height: horizontal() ? '100%' : `${virtualizer.getTotalSize()}px`,
-      width: horizontal() ? `${virtualizer.getTotalSize()}px` : '100%',
+      height: horizontal() ? '100%' : `${virtualizer().getTotalSize()}px`,
+      width: horizontal() ? `${virtualizer().getTotalSize()}px` : '100%',
     };
 
     return mergeProps({
@@ -239,7 +246,7 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
           'data-index': virtualItem.index,
           key,
           ref: mergeRefs((el: Element) => { 
-            if (el) virtualizer.measureElement(el);
+            if (el) virtualizer().measureElement(el);
           }, args.itemProps?.ref),
         }, args?.itemProps ?? {});
 
@@ -273,7 +280,7 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     },
     items: itemWrapper,
     get item() {
-      return virtualizer.getVirtualItems()
+      return virtualizer().getVirtualItems()
     }
   };
 }
