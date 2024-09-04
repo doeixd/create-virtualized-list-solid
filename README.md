@@ -9,6 +9,7 @@ A helpful wrapper around `@tanstack/solid-virtual` that simplifies the creation 
 - Provides extra information for each item (e.g., `isLast`, `isEven`)
 - Automatically determines the count based on your data
 - Maintains full access to all `@tanstack/solid-virtual` features
+- Includes a higher-level `VirtualizedList` component for simple use cases
 
 ## Installation
 
