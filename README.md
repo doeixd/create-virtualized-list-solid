@@ -1,6 +1,6 @@
 # Solid.js Virtualized List Wrapper
 
-A helpful wrapper around `@tanstack/solid-virtual` that simplifies the creation of virtualized lists in Solid.js applications while maintaining full access to the underlying virtualizer's power.
+A helpful wrapper around `@tanstack/solid-virtual` that simplifies the creation of virtualized lists in Solid.js apps while maintaining full access to the underlying virtualizer.
 
 ## Features
 
@@ -46,6 +46,36 @@ const MyList = () => {
   )
 }
 ```
+
+## VirtualizedList Component
+
+For simple use cases we provide a `VirtualizedList` component
+
+```jsx
+import { VirtualizedList } from '@doeixd/create-virtualized-list-solid';
+
+const MyList = () => {
+  const items = Array.from({ length: 10000 }, (_, i) => `Item ${i + 1}`);
+
+  return (
+    <VirtualizedList
+      data={items}
+      height={400}
+      width={300}
+      renderItem={({ item, virtualItem }) => (
+        <div style={{ 
+          padding: '10px',
+          background: virtualItem.isEven ? '#f0f0f0' : 'white'
+        }}>
+          {item}
+          {virtualItem.isLast && ' (Last Item)'}
+        </div>
+      )}
+    />
+  );
+};
+```
+The `VirtualizedList` component simplifies the creation of virtualized lists even further, handling all the setup and providing a clean interface for rendering items.
 
 ## Why is this hepful?
 
@@ -201,6 +231,21 @@ An object with the following properties:
 - `count`: Getter function for total item count (automatically determined)
 - `item`: Getter function for virtual items (alias for `virtualizer.getVirtualItems()`)
 
+### `VirtualizedList<T>(props)`
+
+Creates a simple generic virtualized list component.
+
+#### Props
+
+- `data`: Array of items to be rendered
+- `renderItem`: Function to render each item
+- `height`: Height number of pixels for the list container
+- `width`: Width number of pixels for the list container
+- `className`: Optional CSS class for the list container
+- `style`: Optional inline styles for the list container
+
+All other props from `VirtualizerOptions` are also accepted and passed through to the underlying virtualizer.
+
 
 
 ## Advanced Usage
@@ -219,9 +264,9 @@ virtualList.virtualizer.scrollToIndex(50)
 
 ## TypeScript Support
 
-This wrapper is written in TypeScript and provides full type definitions:
+This wrapper is written in TypeScript and provides type definitions:
 
-```typescript
+```tsx
 interface MyItem {
   id: number;
   name: string;
@@ -231,6 +276,27 @@ const virtualList = createVirtualizedList<MyItem>({
   data: () => myItems,
   // ... other options
 })
+```
+
+```tsx
+interface MyItem {
+  id: number;
+  name: string;
+}
+
+const MyList = () => {
+  const items: MyItem[] = [/* ... */];
+
+  return (
+    <VirtualizedList<MyItem>
+      data={items}
+      height={400}
+      width={300}
+      renderItem={({ item }) => <div>{item.name}</div>}
+      determineKey={(item) => item.id}
+    />
+  );
+};
 ```
 
 ## Requirements

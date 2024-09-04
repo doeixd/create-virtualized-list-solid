@@ -3,8 +3,8 @@ import { createUniqueId, mergeProps, createMemo, createSignal, onMount, untrack 
 import { mergeRefs, createGenerateId } from "@kobalte/utils";
 import { isServer } from "solid-js/web";
 
-type Primitive = string | number | boolean | null | undefined;
-type ObjectWithKey = { [key: string]: any };
+export type Primitive = string | number | boolean | null | undefined;
+export type ObjectWithKey = { [key: string]: any };
 
 export type KeyFunction<T> = (item: T, index?: number) => string | number;
 
