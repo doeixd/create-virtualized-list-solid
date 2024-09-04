@@ -251,6 +251,7 @@ All other props from `VirtualizerOptions` are also accepted and passed through t
 
 ## Advanced Usage
 
+### Accessing the virtualizer
 You can access all features of `@tanstack/solid-virtual` through the `virtualizer` property:
 
 ```jsx
@@ -262,6 +263,103 @@ const virtualList = createVirtualizedList({
 // Use any @tanstack/solid-virtual method
 virtualList.virtualizer.scrollToIndex(50)
 ```
+### Reactivity
+
+#### Item rendering
+In the `virtualList.items` function we allow you to provide a boolean representing whether or not you'd like reactivity inside the callback function for item rendering, allowing you to balance performance and reactivity based on your specific needs.
+
+##### How it works
+You can now specify whether each item should track changes and re-render, or use the default untracked behavior for maximum performance.
+```tsx
+import { createVirtualizedList } from '@doeixd/create-virtualized-list-solid';
+import { For } from 'solid-js';
+
+const MyList = () => {
+  const items = () => Array.from({ length: 10000 }, (_, i) => `Item ${i + 1}`);
+
+  const virtualList = createVirtualizedList({
+    data: items,
+  });
+
+  return (
+    <div {...virtualList.root}>
+      <div {...virtualList.container}>
+        <For each={virtualList.item}>
+          {virtualList.items((item) => (
+            <div {...item.props}>
+              {item.data} 
+              {item.virtualItem.isLast && ' (Last Item)'}
+              {item.virtualItem.isEven && ' (Even Index)'}
+            </div>
+          ), true)} {/* Set to true to enable change tracking */}
+        </For>
+      </div>
+    </div>
+  )
+}
+```
+By setting the second parameter of `virtualList.items` to true, you enable change tracking for that item. This allows the item to react to changes in its data or properties, at the cost of some performance.
+
+##### When to use change tracking
+For items that need to update frequently based on external state
+When implementing dynamic content that changes after initial render
+For interactive elements within list items
+
+##### When to use untracked rendering (default)
+For static content that doesn't change after initial render
+When optimizing for maximum performance with large lists
+For simple, non-interactive list items
+
+This hybrid approach allows you to fine-tune the balance between performance and reactivity in your virtualized lists.
+
+#### Virtualizer 
+The `createVirtualizedList` function is designed to be reactive to changes in its options and data. Here's how reactivity is handled for the virtualizer:
+
+1. **Options Reactivity**: 
+   The virtualizer options are wrapped in a `createMemo`, which means they will automatically update if any reactive dependencies change. This includes changes to the `data` function, `count`, or any other option passed to `createVirtualizedList`.
+
+   ```jsx
+   const [itemHeight, setItemHeight] = createSignal(50);
+   const virtualList = createVirtualizedList({
+     data: items,
+     estimateSize: () => itemHeight()
+   });
+
+   // Later, updating itemHeight will cause the virtualizer to update
+   setItemHeight(75);
+   ```
+
+2. **Data Changes**:
+   If your `data` function is reactive (e.g., it's based on a signal or store), changes to the underlying data will automatically be reflected in the virtualizer.
+
+   ```jsx
+   const [items, setItems] = createSignal([...]);
+   const virtualList = createVirtualizedList({
+     data: items
+   });
+
+   // Later, updating items will cause the virtualizer to update
+   setItems([...newItems]);
+   ```
+
+3. **Manual Updates**:
+   In some cases, you might need to manually trigger an update of the virtualizer. You can do this by accessing the underlying virtualizer instance:
+
+   ```jsx
+   virtualList.virtualizer.measure();  // Force remeasure all items
+   virtualList.virtualizer.getVirtualItems();  // Force recalculation of virtual items
+   ```
+
+4. **Resize Handling**:
+   The virtualizer automatically handles window resize events. If you're using a custom container and its size changes, you might need to manually notify the virtualizer:
+
+   ```jsx
+   window.addEventListener('custom-resize', () => {
+     virtualList.virtualizer.measure();
+   });
+   ```
+
+By leveraging Solid.js's fine-grained reactivity system, `createVirtualizedList` ensures that your virtualized lists stay up-to-date and performant, even as the underlying data or configuration changes. This reactive approach allows you to create dynamic, responsive lists without manually managing updates to the virtualizer.
 
 ## TypeScript Support
 

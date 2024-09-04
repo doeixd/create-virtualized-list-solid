@@ -228,9 +228,9 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     }, args.containerProps || {});
   });
 
-  const itemWrapper = (itemCreator: (args: ItemArgs<T>) => any) => 
+  const itemWrapper = (itemCreator: (args: ItemArgs<T>) => any, trackChanges = false) => 
     (virtualItem: VirtualItem, virtualItemIndex: () => number) => {
-      return untrack(() => {
+      const createItem = () => {
         const itemData = data()[virtualItem.index];
         const style = {
           position: 'absolute',
@@ -263,8 +263,10 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
         };
         
         return itemCreator(itemArgs);
-      });
-    };
+      }
+
+      return trackChanges ? createMemo(createItem) : untrack(createItem)
+    }
 
   return {
     id,
