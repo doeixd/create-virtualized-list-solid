@@ -13,6 +13,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # This is important for getting all tags
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -40,10 +42,21 @@ jobs:
           echo "cjs_file=$CJS_FILE" >> $GITHUB_OUTPUT
           echo "esm_file=$ESM_FILE" >> $GITHUB_OUTPUT
           echo "types_file=$TYPES_FILE" >> $GITHUB_OUTPUT
+
       - name: Publish to npm
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Get Changelog Entry
+        id: get_changelog
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          CHANGELOG_ENTRY=$(awk "/^## \[$VERSION\]/ {flag=1;next} /^## \[/ {flag=0} flag" CHANGELOG.md)
+          CHANGELOG_ENTRY="${CHANGELOG_ENTRY//'%'/'%25'}"
+          CHANGELOG_ENTRY="${CHANGELOG_ENTRY//$'\n'/'%0A'}"
+          CHANGELOG_ENTRY="${CHANGELOG_ENTRY//$'\r'/'%0D'}"
+          echo "changelog=$CHANGELOG_ENTRY" >> $GITHUB_OUTPUT
 
       - name: Create Release
         id: create_release
@@ -53,6 +66,8 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
+          body: |
+            ${{ steps.get_changelog.outputs.changelog }}
           draft: false
           prerelease: false
 
