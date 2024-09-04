@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.1](https://github.com/doeixd/create-virtualized-list-solid/compare/v1.2.0...v1.2.1) (2024-09-04)
+
+
+### Bug Fixes
+
+* :bug: Fixed misc issues and formatting ([3853c6d](https://github.com/doeixd/create-virtualized-list-solid/commit/3853c6de08aa958cf30b98159eb5672101a6eb4c))
+
 ## [1.2.0](https://github.com/doeixd/create-virtualized-list-solid/compare/v1.1.0...v1.2.0) (2024-09-04)
 
 
