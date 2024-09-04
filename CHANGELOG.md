@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.2](https://github.com/doeixd/create-virtualized-list-solid/compare/v1.2.1...v1.2.2) (2024-09-04)
+
+
+### Bug Fixes
+
+* :art: made result of itemCreator easire to reason about the reactivity ([c51853f](https://github.com/doeixd/create-virtualized-list-solid/commit/c51853ff9d14669d48036a3ce91919ed33c42e87))
+
 ### [1.2.1](https://github.com/doeixd/create-virtualized-list-solid/compare/v1.2.0...v1.2.1) (2024-09-04)
 
 
