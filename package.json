@@ -1,6 +1,6 @@
 {
   "name": "@doeixd/create-virtualized-list-solid",
-  "version": "1.0.14",
+  "version": "1.1.0",
   "files": [
     "dist",
     "src"
@@ -24,12 +24,13 @@
     "@types/node": "^20.14.9",
     "pridepack": "2.6.1",
     "solid-js": "^1.8.22",
+    "standard-version": "^9.5.0",
     "tslib": "^2.6.3",
     "typescript": "^5.5.3"
   },
   "peerDependencies": {
-    "solid-js": "^1.8",
-    "@tanstack/solid-virtual": "^3.10.6"
+    "@tanstack/solid-virtual": "^3.10.6",
+    "solid-js": "^1.8"
   },
   "scripts": {
     "release2": "npm run release:patch",
