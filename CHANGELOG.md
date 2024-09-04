@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/doeixd/create-virtualized-list-solid/compare/v1.1.0...v1.2.0) (2024-09-04)
+
+
+### Features
+
+* :sparkles: Added configurable reactivity/change tracking to list item creation functions ([839ca1b](https://github.com/doeixd/create-virtualized-list-solid/commit/839ca1b0c10ed64644b622a7127e3b2c791e38f3))
+
 ## [1.1.0](https://github.com/doeixd/create-virtualized-list-solid/compare/v1.0.14...v1.1.0) (2024-09-04)
 
 
