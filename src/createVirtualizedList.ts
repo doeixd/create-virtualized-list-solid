@@ -14,8 +14,8 @@ export interface VirtualizedListArgs<T, ScrollElement extends Element = Element,
   data: () => T[]
   determineKey?: KeyFunction<T>
   itemHeight?: number
-  width?: number
-  height?: number
+  width?: number | string
+  height?: number | string
   rootProps?: Record<string, any>
   containerProps?: Record<string, any>
   itemProps?: Record<string, any>
@@ -46,6 +46,7 @@ export interface ItemArgs<T> {
  * @property {Record<string, any>} container - Getter for the container element props.
  * @property {(itemCreator: (args: ItemArgs<T>) => any) => (virtualItem: VirtualItem, virtualItemIndex: () => number) => any} items - Function to create wrapper for list items.
  * @property {VirtualItem[]} item - Getter for the array of virtual items.
+ * @property {Accessor<Element | null>} rootRef - Root ref getter
  * 
  * @example
  * const MyList = () => {
@@ -100,10 +101,12 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
 
   const estimateSize = createMemo(() => args?.estimateSize || ((index: number) => args.itemHeight || 50))
 
-  const initialRect = () => ({
-    width: args?.width ?? args.initialRect?.width ?? 600,
-    height: args?.height ?? args.initialRect?.height ?? 400,
-  })
+  const initialRect = () => {
+    return ({
+      width:  args.initialRect?.width ?? (typeof args?.width == 'number' ? args.width : undefined ) ?? 600,
+      height: args.initialRect?.height ?? (typeof args?.height == 'number' ? args.height : undefined ) ?? 400,
+    })
+  }
 
   const measureElement = createMemo(() => {
     if (isServer) return undefined
@@ -135,7 +138,9 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
       paddingEnd: currentArgs?.paddingEnd ?? 10,
       scrollPaddingStart: currentArgs?.scrollPaddingStart ?? 0,
       scrollPaddingEnd: currentArgs?.scrollPaddingEnd ?? 0,
-      initialRect: currentArgs?.initialRect ?? initialRect(),
+      get initialRect() {
+         return currentArgs?.initialRect ?? initialRect()
+      },
       initialOffset: currentArgs?.initialOffset ?? 0,
       onChange: currentArgs.onChange,
       scrollToFn: currentArgs?.scrollToFn ?? ((offset, { behavior }) => {
@@ -204,8 +209,8 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
       'overflow-y': horizontal() ? 'hidden' : 'auto',
       'overflow-x': horizontal() ? 'auto' : 'hidden',
       position: 'relative',
-      height: args?.height ? `${args.height}px` : '400px',
-      width: args?.width ? `${args.width}px` : '100%',
+      height: (typeof args?.height == 'number') ? `${args.height}px` : (typeof args?.height == 'string') ? args.height : '100%',
+      width:  (typeof args?.width == 'number') ? `${args.width}px` : (typeof args?.width == 'string') ? args.width : '100%',
     }
     const horizontalAttr = horizontal() ? "" : undefined
 
@@ -290,7 +295,8 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     items: itemWrapper,
     get item() {
       return virtualizer.getVirtualItems()
-    }
+    },
+    rootRef: rootElement
   }
 }
 
