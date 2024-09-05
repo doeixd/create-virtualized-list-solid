@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/doeixd/create-virtualized-list-solid/compare/v1.2.2...v1.3.0) (2024-09-05)
+
+
+### Features
+
+* :sparkles: Added root ref to return value, and changed how width/height are used ([d6a2d33](https://github.com/doeixd/create-virtualized-list-solid/commit/d6a2d336ac70d2a0b783d160f477961e43e897d2))
+
 ### [1.2.2](https://github.com/doeixd/create-virtualized-list-solid/compare/v1.2.1...v1.2.2) (2024-09-04)
 
 
