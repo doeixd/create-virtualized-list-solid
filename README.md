@@ -10,11 +10,11 @@ A helpful wrapper around `@tanstack/solid-virtual` that simplifies the creation 
 - Automatically determines the count based on your data
 - Maintains full access to all `@tanstack/solid-virtual` features
 - Includes a higher-level `VirtualizedList` component for simple use cases
-- **Full accessibility support** with ARIA attributes and keyboard navigation
-- **Window scrolling mode** for full-page virtualized lists
-- **scrollToItem helper** to scroll by item ID/key instead of just index
-- **Empty and loading states** with customizable fallbacks
-- **TypeScript-first** with full JSX autocomplete for all props
+- Full accessibility support with ARIA attributes and keyboard navigation
+- Window scrolling mode for full-page virtualized lists
+- scrollToItem helper to scroll by item ID/key instead of just index
+- Empty and loading states with customizable fallbacks
+- TypeScript-first with full JSX autocomplete for all props
 
 ## Installation
 
