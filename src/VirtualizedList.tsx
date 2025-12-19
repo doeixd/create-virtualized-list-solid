@@ -1,4 +1,4 @@
-import { Component, JSX, For, createMemo, splitProps } from 'solid-js';
+import { Component, JSX, For, createMemo, splitProps, Show } from 'solid-js';
 import { createVirtualizedList, VirtualizedListArgs, VirtualItemWithExtras, ObjectWithKey, Primitive } from './createVirtualizedList';
 import { mergeProps } from 'solid-js';
 
@@ -30,6 +30,12 @@ interface VirtualizedListProps<T> extends Omit<VirtualListProps<T>, 'width' | 'h
   className?: string;
   /** Optional inline styles for the list container. */
   style?: JSX.CSSProperties;
+  /** Element shown when data is empty */
+  fallback?: JSX.Element;
+  /** Whether the list is in a loading state */
+  loading?: boolean;
+  /** Element shown when loading is true */
+  loadingFallback?: JSX.Element;
 }
 
 const defaultProps = {
@@ -86,34 +92,45 @@ const defaultProps = {
  */
 export function VirtualizedList<T extends Primitive | ObjectWithKey>(userProps: VirtualizedListProps<T>): JSX.Element {
   const props = mergeProps(defaultProps, userProps);
-  const [local, virtualListProps] = splitProps(props, ['data', 'renderItem', 'height', 'width', 'className', 'style']);
+  const [local, virtualListProps] = splitProps(props, ['data', 'renderItem', 'height', 'width', 'className', 'style', 'fallback', 'loading', 'loadingFallback']);
 
-  const virtualList = createMemo(() => createVirtualizedList<T>({
+  // Call hook at top level - pass reactive accessors for reactivity
+  const virtualList = createVirtualizedList<T>({
     ...virtualListProps,
     data: () => local.data,
     height: local.height,
     width: local.width,
-  }));
+  });
 
   return (
-    <div 
-      {...virtualList().root} 
-      style={mergeProps(
-        virtualList().root.style,
-        local.style
-      )}
-      class={local.className}
+    <Show
+      when={!local.loading}
+      fallback={local.loadingFallback || <div>Loading...</div>}
     >
-      <div {...virtualList().container}>
-        <For each={virtualList().item}>
-          {virtualList().items((itemData) => (
-            local.renderItem({
-              item: itemData.data,
-              virtualItem: itemData.virtualItem,
-            })
-          ))}
-        </For>
-      </div>
-    </div>
+      <Show
+        when={local.data.length > 0}
+        fallback={local.fallback || <div>No items</div>}
+      >
+        <div
+          {...virtualList.root}
+          style={mergeProps(
+            virtualList.root.style,
+            local.style
+          ) as any}
+          class={local.className}
+        >
+          <div {...virtualList.container as any}>
+            <For each={virtualList.item}>
+              {virtualList.items((itemData) => (
+                local.renderItem({
+                  item: itemData.data,
+                  virtualItem: itemData.virtualItem,
+                })
+              ))}
+            </For>
+          </div>
+        </div>
+      </Show>
+    </Show>
   );
 }

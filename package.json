@@ -32,7 +32,7 @@
     "vitest": "^2.0.5"
   },
   "peerDependencies": {
-    "@tanstack/solid-virtual": "^3.10.6",
+    "@tanstack/solid-virtual": "^3.13.13",
     "solid-js": "^1.8"
   },
   "scripts": {
@@ -64,9 +64,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@kobalte/utils": "^0.9.1"
-  },
+  "dependencies": {},
   "types": "./dist/types/index.d.ts",
   "main": "./dist/cjs/production/index.jsx",
   "module": "./dist/esm/production/index.jsx",

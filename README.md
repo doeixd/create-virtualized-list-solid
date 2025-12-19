@@ -10,6 +10,11 @@ A helpful wrapper around `@tanstack/solid-virtual` that simplifies the creation 
 - Automatically determines the count based on your data
 - Maintains full access to all `@tanstack/solid-virtual` features
 - Includes a higher-level `VirtualizedList` component for simple use cases
+- **Full accessibility support** with ARIA attributes and keyboard navigation
+- **Window scrolling mode** for full-page virtualized lists
+- **scrollToItem helper** to scroll by item ID/key instead of just index
+- **Empty and loading states** with customizable fallbacks
+- **TypeScript-first** with full JSX autocomplete for all props
 
 ## Installation
 
@@ -200,6 +205,133 @@ As you can see, the wrapper:
 
 By abstracting these details, the wrapper allows you to focus on your list content rather than the complexities of virtualization.
 
+## Accessibility
+
+The library includes comprehensive accessibility features out of the box:
+
+### ARIA Support
+
+```jsx
+const virtualList = createVirtualizedList({
+  data: items,
+  // ARIA attributes
+  role: 'list',  // Default, can also be 'listbox', 'menu', 'tree', 'grid'
+  itemRole: 'listitem',  // Default, can also be 'option', 'menuitem', 'treeitem', 'row'
+  ariaLabel: 'List of items',
+  ariaLabelledBy: 'list-heading-id',
+  ariaDescribedBy: 'list-description-id',
+});
+```
+
+Each item automatically includes:
+- `aria-setsize`: Total number of items
+- `aria-posinset`: Item's position (e.g., "Item 5 of 10,000")
+
+### Keyboard Navigation
+
+Enable full keyboard support with arrow keys, Home, End, PageUp, and PageDown:
+
+```jsx
+const virtualList = createVirtualizedList({
+  data: items,
+  enableKeyboardNavigation: true,
+});
+```
+
+**Keyboard shortcuts:**
+- `↑/↓`: Navigate to previous/next item
+- `Home`: Jump to first item
+- `End`: Jump to last item
+- `PageUp`: Move up ~10 items
+- `PageDown`: Move down ~10 items
+
+The list automatically scrolls focused items into view and manages `tabIndex` for proper focus management.
+
+## Window Scrolling
+
+Use the entire window as the scroll container instead of a fixed-height element:
+
+```jsx
+const virtualList = createVirtualizedList({
+  data: items,
+  windowScroll: true,  // Uses document.documentElement as scroll container
+  height: '100vh',
+});
+```
+
+This is useful for full-page lists where you want the browser's native scrollbar.
+
+## Empty and Loading States
+
+The `VirtualizedList` component includes built-in support for empty and loading states:
+
+```jsx
+<VirtualizedList
+  data={items}
+  loading={isLoading}
+  loadingFallback={<div>Loading your items...</div>}
+  fallback={<div>No items found</div>}
+  renderItem={({ item }) => <div>{item}</div>}
+  height={400}
+/>
+```
+
+- `loading`: Boolean indicating if data is loading
+- `loadingFallback`: Custom component shown during loading (default: "Loading...")
+- `fallback`: Custom component shown when data is empty (default: "No items")
+
+## Scrolling Methods
+
+### Scroll to Index
+
+```jsx
+const virtualList = createVirtualizedList({ data: items });
+
+// Scroll to item at index 100
+virtualList.scrollToIndex(100, {
+  align: 'center',  // 'start' | 'center' | 'end' | 'auto'
+  behavior: 'smooth'  // 'auto' | 'smooth' | 'instant'
+});
+```
+
+### Scroll to Item by ID/Key
+
+New helper method to scroll by item ID instead of index:
+
+```jsx
+const users = [
+  { id: 1, name: 'Alice' },
+  { id: 2, name: 'Bob' },
+  // ... thousands more
+];
+
+const virtualList = createVirtualizedList({
+  data: () => users,
+  determineKey: (user) => user.id,
+});
+
+// Scroll directly to the user with id: 42
+virtualList.scrollToItem(42, {
+  align: 'center',
+  behavior: 'smooth'
+});
+```
+
+The `scrollToItem` method uses an internal memoized Map for O(1) lookup performance and will warn if the item ID is not found.
+
+### Other Scroll Methods
+
+```jsx
+// Scroll to specific offset
+virtualList.scrollToOffset(500, { behavior: 'smooth' });
+
+// Scroll by relative amount
+virtualList.scrollBy(100, { behavior: 'smooth' });
+
+// Force remeasure (useful after content changes)
+virtualList.measure();
+```
+
 ## API
 
 ### `createVirtualizedList(args)`
@@ -210,13 +342,31 @@ Creates a virtualized list wrapper.
 
 `args`: An object that extends `VirtualizerOptions` from `@tanstack/solid-virtual` with additional properties:
 
+**Core Options:**
 - `data`: Function returning an array of items to be rendered
 - `itemHeight`: (Optional) Fixed height for items
-- `width`: (Optional) Width of the list container
-- `height`: (Optional) Height of the list container
-- `rootProps`: (Optional) Additional props for the root element
-- `containerProps`: (Optional) Additional props for the container element
-- `itemProps`: (Optional) Additional props for each item element
+- `width`: (Optional) Width of the list container (number or string)
+- `height`: (Optional) Height of the list container (number or string)
+- `determineKey`: (Optional) Function to determine unique key for each item
+
+**Element Props (with full TypeScript autocomplete):**
+- `rootProps`: (Optional) `JSX.HTMLAttributes<HTMLDivElement>` for the root element
+- `containerProps`: (Optional) `JSX.HTMLAttributes<HTMLDivElement>` for the container element
+- `itemProps`: (Optional) `JSX.HTMLAttributes<HTMLDivElement>` for each item element
+
+**Accessibility:**
+- `role`: (Optional) ARIA role for the list ('list' | 'listbox' | 'menu' | 'tree' | 'grid')
+- `itemRole`: (Optional) ARIA role for items ('listitem' | 'option' | 'menuitem' | 'treeitem' | 'row')
+- `ariaLabel`: (Optional) Accessible label for the list
+- `ariaLabelledBy`: (Optional) ID of element that labels the list
+- `ariaDescribedBy`: (Optional) ID of element that describes the list
+- `enableKeyboardNavigation`: (Optional) Enable arrow key navigation
+
+**Advanced:**
+- `windowScroll`: (Optional) Use window as scroll container
+- `useIntersectionObserver`: (Optional) Use IntersectionObserver for measurements
+- `header`: (Optional) Header content
+- `footer`: (Optional) Footer content
 
 All other `VirtualizerOptions` are also accepted and passed through to the underlying virtualizer.
 
@@ -227,10 +377,18 @@ An object with the following properties:
 - `root`: Getter function for root element props
 - `container`: Getter function for container element props
 - `items`: Function to create item wrappers with extra info
+- `item`: Getter function for virtual items (alias for `virtualizer.getVirtualItems()`)
 - `virtualizer`: The underlying `@tanstack/solid-virtual` instance
 - `id`: Unique identifier for the list
 - `count`: Getter function for total item count (automatically determined)
-- `item`: Getter function for virtual items (alias for `virtualizer.getVirtualItems()`)
+- `scrollToIndex(index, options?)`: Scroll to item by index
+- `scrollToItem(itemId, options?)`: Scroll to item by ID/key
+- `scrollToOffset(offset, options?)`: Scroll to specific pixel offset
+- `scrollBy(amount, options?)`: Scroll by relative amount
+- `measure()`: Force remeasure all items
+- `header`: Header content accessor
+- `footer`: Footer content accessor
+- `rootRef`: Signal for the root element reference
 
 ### `VirtualizedList<T>(props)`
 
@@ -238,12 +396,29 @@ Creates a simple generic virtualized list component.
 
 #### Props
 
+**Required:**
 - `data`: Array of items to be rendered
-- `renderItem`: Function to render each item
-- `height`: Height number of pixels for the list container
-- `width`: Width number of pixels for the list container
-- `className`: Optional CSS class for the list container
-- `style`: Optional inline styles for the list container
+- `renderItem`: Function to render each item `({ item, virtualItem }) => JSX.Element`
+
+**Dimensions:**
+- `height`: (Optional) Height of the list container (number or string)
+- `width`: (Optional) Width of the list container (number or string)
+
+**Styling:**
+- `className`: (Optional) CSS class for the list container
+- `style`: (Optional) Inline styles for the list container
+
+**States:**
+- `loading`: (Optional) Boolean indicating loading state
+- `loadingFallback`: (Optional) Custom element shown during loading
+- `fallback`: (Optional) Custom element shown when data is empty
+
+**Accessibility & Behavior:**
+All accessibility and advanced options from `createVirtualizedList` are supported, including:
+- `role`, `itemRole`, `ariaLabel`, `ariaLabelledBy`, `ariaDescribedBy`
+- `enableKeyboardNavigation`
+- `windowScroll`
+- `determineKey`
 
 All other props from `VirtualizerOptions` are also accepted and passed through to the underlying virtualizer.
 

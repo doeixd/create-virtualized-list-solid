@@ -1,6 +1,6 @@
 import { createVirtualizer, VirtualItem, VirtualizerOptions } from "@tanstack/solid-virtual"
-import { createUniqueId, mergeProps, createMemo, createSignal, onMount, untrack, createEffect, on } from "solid-js"
-import { mergeRefs, createGenerateId } from "@kobalte/utils"
+import { createUniqueId, mergeProps, createMemo, createSignal, onMount, untrack, createEffect, on, JSX } from "solid-js"
+import { mergeRefs, createGenerateId } from "./utils"
 import { isServer } from "solid-js/web"
 
 export type Primitive = string | number | boolean | null | undefined
@@ -16,9 +16,26 @@ export interface VirtualizedListArgs<T, ScrollElement extends Element = Element,
   itemHeight?: number
   width?: number | string
   height?: number | string
-  rootProps?: Record<string, any>
-  containerProps?: Record<string, any>
-  itemProps?: Record<string, any>
+
+  // Typed props for better IDE support and type safety
+  rootProps?: JSX.HTMLAttributes<HTMLDivElement>
+  containerProps?: JSX.HTMLAttributes<HTMLDivElement>
+  itemProps?: JSX.HTMLAttributes<HTMLDivElement>
+
+  useIntersectionObserver?: boolean
+
+  // Accessibility props
+  ariaLabel?: string
+  ariaLabelledBy?: string
+  ariaDescribedBy?: string
+  role?: 'list' | 'listbox' | 'menu' | 'tree' | 'grid'
+  itemRole?: 'listitem' | 'option' | 'menuitem' | 'treeitem' | 'row'
+  enableKeyboardNavigation?: boolean
+
+  // Feature extensions
+  windowScroll?: boolean
+  header?: any
+  footer?: any
 }
 
 export interface VirtualItemWithExtras extends VirtualItem {
@@ -28,8 +45,16 @@ export interface VirtualItemWithExtras extends VirtualItem {
 
 export interface ItemArgs<T> {
   data: T
-  props: Record<string, any>
+  props: JSX.HTMLAttributes<HTMLDivElement> & {
+    'data-list-item': 'true'
+    'data-index': number
+    key: string | number
+  } & Record<string, any>
   virtualItem: VirtualItemWithExtras
+}
+
+export interface ItemsOptions {
+  track?: boolean
 }
 
 /**
@@ -93,13 +118,51 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     return item as unknown as string | number
   }))
 
+  // Create ID-to-index map for efficient scrollToItem lookups
+  const itemIdToIndexMap = createMemo(() => {
+    const map = new Map<string | number, number>()
+    const items = data()
+
+    for (let i = 0; i < items.length; i++) {
+      const key = determineKey()(items[i], i)
+      map.set(key, i)
+    }
+
+    return map
+  })
+
   const horizontal = () => args?.horizontal ?? false
 
   const [rootElement, setRootElement] = createSignal<Element | null>(null)
+  const [autoEstimatedSize, setAutoEstimatedSize] = createSignal<number | null>(null)
+  const [firstItemMeasured, setFirstItemMeasured] = createSignal(false)
+  const [focusedIndex, setFocusedIndex] = createSignal<number>(-1)
+  const [isKeyboardNavigating, setIsKeyboardNavigating] = createSignal(false)
 
-  const getScrollElement = () => rootElement()
+  const getScrollElement = () => {
+    if (args.windowScroll) {
+      return typeof window !== 'undefined' ? document.documentElement : null
+    }
 
-  const estimateSize = createMemo(() => args?.estimateSize || ((index: number) => args.itemHeight || 50))
+    const element = rootElement()
+
+    // Check if element is connected to DOM before returning
+    if (element && !element.isConnected) {
+      return null
+    }
+
+    return element
+  }
+
+  const estimateSize = createMemo(() => {
+    if (args?.estimateSize) return args.estimateSize
+    if (args.itemHeight) return (index: number) => args.itemHeight || 50
+
+    const autoSize = autoEstimatedSize()
+    if (autoSize !== null) return (index: number) => autoSize
+
+    return (index: number) => 50  // Default fallback
+  })
 
   const initialRect = () => {
     return ({
@@ -108,8 +171,41 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     })
   }
 
+  // IntersectionObserver for lazy measurement
+  const intersectionMeasureElement = createMemo(() => {
+    if (isServer || !args.useIntersectionObserver) return undefined
+
+    const elementMap = new WeakMap<Element, IntersectionObserver>()
+
+    return (element: Element) => {
+      const existingObserver = elementMap.get(element)
+      if (existingObserver) existingObserver.disconnect()
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              virtualizer.measureElement(entry.target as Element)
+            }
+          }
+        },
+        { root: getScrollElement(), threshold: 0.01 }
+      )
+
+      observer.observe(element)
+      elementMap.set(element, observer)
+
+      return element.getBoundingClientRect()[horizontal() ? 'width' : 'height']
+    }
+  })
+
   const measureElement = createMemo(() => {
     if (isServer) return undefined
+
+    // Use IntersectionObserver if enabled
+    if (args.useIntersectionObserver) {
+      return intersectionMeasureElement()
+    }
 
     if (args.measureElement) return args.measureElement
     if (navigator.userAgent.indexOf('Firefox') === -1) {
@@ -205,21 +301,35 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
   }, { defer: true }))
 
   const rootProps = createMemo(() => {
-    const defaultStyle = {
-      'overflow-y': horizontal() ? 'hidden' : 'auto',
-      'overflow-x': horizontal() ? 'auto' : 'hidden',
-      position: 'relative',
-      height: (typeof args?.height == 'number') ? `${args.height}px` : (typeof args?.height == 'string') ? args.height : '100%',
-      width:  (typeof args?.width == 'number') ? `${args.width}px` : (typeof args?.width == 'string') ? args.width : '100%',
-    }
+    const defaultStyle = args.windowScroll
+      ? {
+          position: 'relative',
+          height: (typeof args?.height == 'number') ? `${args.height}px` : (typeof args?.height == 'string') ? args.height : 'auto',
+          width:  (typeof args?.width == 'number') ? `${args.width}px` : (typeof args?.width == 'string') ? args.width : '100%',
+        }
+      : {
+          'overflow-y': horizontal() ? 'hidden' : 'auto',
+          'overflow-x': horizontal() ? 'auto' : 'hidden',
+          position: 'relative',
+          height: (typeof args?.height == 'number') ? `${args.height}px` : (typeof args?.height == 'string') ? args.height : '100%',
+          width:  (typeof args?.width == 'number') ? `${args.width}px` : (typeof args?.width == 'string') ? args.width : '100%',
+        }
     const horizontalAttr = horizontal() ? "" : undefined
 
     return mergeProps({
-      id: id,
+      id: id(),
       style: defaultStyle,
       "data-horizontal": horizontalAttr,
-      "data-list-id": id,
+      "data-list-id": id(),
       ref: mergeRefs((el: Element) => setRootElement(el), args.rootProps?.ref),
+      // ARIA attributes
+      role: args.role || 'list',
+      'aria-label': args.ariaLabel,
+      'aria-labelledby': args.ariaLabelledBy,
+      'aria-describedby': args.ariaDescribedBy,
+      tabIndex: args.enableKeyboardNavigation ? 0 : undefined,
+      // Keyboard navigation
+      onKeyDown: args.enableKeyboardNavigation ? handleKeyDown : undefined,
     }, args.rootProps || {})
   })
 
@@ -237,17 +347,87 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     }, args.containerProps || {})
   })
 
-  const itemWrapper = (itemCreator: (args: ItemArgs<T>) => any, trackChanges = false) =>
+  // Keyboard navigation handler
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!args.enableKeyboardNavigation) return
+
+    const currentIndex = focusedIndex()
+    const itemCount = count()
+    let newIndex = currentIndex
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        newIndex = Math.min(currentIndex + 1, itemCount - 1)
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        newIndex = Math.max(currentIndex - 1, 0)
+        break
+      case 'Home':
+        e.preventDefault()
+        newIndex = 0
+        break
+      case 'End':
+        e.preventDefault()
+        newIndex = itemCount - 1
+        break
+      case 'PageDown':
+        e.preventDefault()
+        // Estimate ~10 items per page
+        newIndex = Math.min(currentIndex + 10, itemCount - 1)
+        break
+      case 'PageUp':
+        e.preventDefault()
+        newIndex = Math.max(currentIndex - 10, 0)
+        break
+      default:
+        return
+    }
+
+    if (newIndex !== currentIndex) {
+      setFocusedIndex(newIndex)
+      setIsKeyboardNavigating(true)
+      virtualizer.scrollToIndex(newIndex, { align: 'auto' } as any)
+    }
+  }
+
+  // Memoized style creator - only recreates when horizontal changes
+  const createItemStyle = createMemo(() => {
+    const isHorizontal = horizontal()
+    const baseStyle = {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      transform: isHorizontal
+        ? 'translateX(var(--item-start))'
+        : 'translateY(var(--item-start))',
+      width: isHorizontal ? 'var(--item-size)' : '100%',
+      height: isHorizontal ? '100%' : 'var(--item-size)',
+    }
+
+    return (virtualItem: VirtualItem) => ({
+      ...baseStyle,
+      '--item-start': `${virtualItem.start}px`,
+      '--item-size': `${virtualItem.size}px`,
+    })
+  })
+
+  const itemWrapper = (
+    itemCreator: (args: ItemArgs<T>) => any,
+    trackChanges?: boolean | ItemsOptions
+  ) =>
     (virtualItem: VirtualItem, virtualItemIndex: () => number) => {
+      // Normalize options - support both old boolean and new object format
+      const options: ItemsOptions = typeof trackChanges === 'boolean'
+        ? { track: trackChanges }
+        : (trackChanges || {})
+
+      const shouldTrack = options.track ?? false
+
       const createItem = createMemo(() => {
         const itemData = data()[virtualItem.index]
-        const style = {
-          position: 'absolute',
-          top: horizontal() ? 0 : `${virtualItem.start}px`,
-          left: horizontal() ? `${virtualItem.start}px` : 0,
-          width: horizontal() ? `${virtualItem.size}px` : '100%',
-          height: horizontal() ? '100%' : `${virtualItem.size}px`,
-        }
+        const style = createItemStyle()(virtualItem)
 
         const key = determineKey()(itemData, virtualItem.index)
         const itemProps = mergeProps({
@@ -255,16 +435,43 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
           'data-list-item': 'true',
           'data-index': virtualItem.index,
           key,
-          ref: mergeRefs((el: Element) => {
-            if (el) virtualizer.measureElement(el)
-          }, args.itemProps?.ref),
+          ref: mergeRefs(
+            (el: Element) => {
+              if (el) {
+                virtualizer.measureElement(el)
+
+                // Auto-measure first item if no estimateSize provided
+                if (
+                  !args.estimateSize &&
+                  !args.itemHeight &&
+                  virtualItem.index === 0 &&
+                  !firstItemMeasured()
+                ) {
+                  const size = el.getBoundingClientRect()[horizontal() ? 'width' : 'height']
+                  if (size > 0) {
+                    setAutoEstimatedSize(size)
+                    setFirstItemMeasured(true)
+                    virtualizer.measure()  // Re-measure all items
+                  }
+                }
+              }
+            },
+            args.itemProps?.ref
+          ),
+          // ARIA attributes for items
+          role: args.itemRole || 'listitem',
+          'aria-setsize': count(),
+          'aria-posinset': virtualItem.index + 1,
+          // Keyboard navigation focus management
+          tabIndex: args.enableKeyboardNavigation && focusedIndex() === virtualItem.index ? 0 : -1,
+          'aria-selected': args.enableKeyboardNavigation && focusedIndex() === virtualItem.index ? true : undefined,
         }, args?.itemProps ?? {})
 
         const isLast = virtualItem.index === count() - 1
         const isEven = virtualItem.index % 2 === 0
         const itemArgs: ItemArgs<T> = {
           data: itemData,
-          props: itemProps,
+          props: itemProps as any,
           virtualItem: {
             ...virtualItem,
             isLast,
@@ -275,7 +482,7 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
         return itemCreator(itemArgs)
       })
 
-      return trackChanges ? createItem() : untrack(createItem)
+      return shouldTrack ? createItem() : untrack(createItem)
     }
 
   return {
@@ -296,7 +503,54 @@ export function createVirtualizedList<T extends Primitive | ObjectWithKey>(args:
     get item() {
       return virtualizer.getVirtualItems()
     },
-    rootRef: rootElement
+    rootRef: rootElement,
+
+    // Header/footer accessors
+    get header() {
+      return args.header
+    },
+    get footer() {
+      return args.footer
+    },
+
+    // Convenience methods for common operations
+    scrollToIndex: (index: number, options?: {
+      align?: 'start' | 'center' | 'end' | 'auto',
+      behavior?: 'auto' | 'smooth' | 'instant'
+    }) => {
+      virtualizer.scrollToIndex(index, options as any)
+    },
+
+    scrollToItem: (itemId: string | number, options?: {
+      align?: 'start' | 'center' | 'end' | 'auto',
+      behavior?: 'auto' | 'smooth' | 'instant'
+    }) => {
+      const index = itemIdToIndexMap().get(itemId)
+      if (index !== undefined) {
+        virtualizer.scrollToIndex(index, options as any)
+      } else {
+        console.warn(`[VirtualizedList] Item with id "${itemId}" not found in list`)
+      }
+    },
+
+    scrollToOffset: (offset: number, options?: {
+      align?: 'start' | 'center' | 'end' | 'auto',
+      behavior?: 'auto' | 'smooth' | 'instant'
+    }) => {
+      virtualizer.scrollToOffset(offset, options as any)
+    },
+
+    scrollBy: (delta: number, options?: { behavior?: ScrollBehavior }) => {
+      const scrollElement = getScrollElement()
+      if (scrollElement) {
+        scrollElement.scrollBy({
+          [horizontal() ? 'left' : 'top']: delta,
+          behavior: options?.behavior,
+        })
+      }
+    },
+
+    measure: () => virtualizer.measure(),
   }
 }
 

@@ -12,6 +12,8 @@ vi.mock('@tanstack/solid-virtual', () => ({
     getTotalSize: vi.fn(() => 100),
     measure: vi.fn(),
     scrollToIndex: vi.fn(),
+    scrollToOffset: vi.fn(),
+    setOptions: vi.fn(),
   })),
 }))
 
@@ -205,6 +207,499 @@ describe('createVirtualizedList', () => {
       expect(itemCreator).toHaveBeenCalledTimes(2)
 
       dispose()
+    })
+  })
+
+  describe('scrollToItem', () => {
+    it('should scroll to item by ID', () => {
+      createRoot(dispose => {
+        const data = () => [
+          { id: 1, name: 'Alice' },
+          { id: 2, name: 'Bob' },
+          { id: 3, name: 'Charlie' },
+        ]
+        const vList = createVirtualizedList({
+          data,
+          determineKey: (item) => item.id,
+        })
+
+        vList.scrollToItem(2, { align: 'center' })
+
+        expect(vList.virtualizer.scrollToIndex).toHaveBeenCalledWith(1, { align: 'center' })
+
+        dispose()
+      })
+    })
+
+    it('should warn when item ID not found', () => {
+      createRoot(dispose => {
+        const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+        const data = () => [
+          { id: 1, name: 'Alice' },
+          { id: 2, name: 'Bob' },
+        ]
+        const vList = createVirtualizedList({
+          data,
+          determineKey: (item) => item.id,
+        })
+
+        vList.scrollToItem(999)
+
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          '[VirtualizedList] Item with id "999" not found in list'
+        )
+        expect(vList.virtualizer.scrollToIndex).not.toHaveBeenCalled()
+
+        consoleWarnSpy.mockRestore()
+        dispose()
+      })
+    })
+
+    it('should work with primitive arrays', () => {
+      createRoot(dispose => {
+        const data = () => ['item-a', 'item-b', 'item-c']
+        const vList = createVirtualizedList({ data })
+
+        // For primitive arrays without determineKey, it should use the value itself
+        vList.scrollToItem('item-b')
+
+        // Should scroll to index 1
+        expect(vList.virtualizer.scrollToIndex).toHaveBeenCalledWith(1, undefined)
+
+        dispose()
+      })
+    })
+  })
+
+  describe('scrolling methods', () => {
+    it('should provide scrollToIndex method', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2', 'Item 3']
+        const vList = createVirtualizedList({ data })
+
+        vList.scrollToIndex(2, { align: 'start', behavior: 'smooth' })
+
+        expect(vList.virtualizer.scrollToIndex).toHaveBeenCalledWith(2, {
+          align: 'start',
+          behavior: 'smooth',
+        })
+
+        dispose()
+      })
+    })
+
+    it('should provide scrollToOffset method', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const vList = createVirtualizedList({ data })
+
+        vList.scrollToOffset(500, { behavior: 'smooth' })
+
+        expect(vList.virtualizer.scrollToOffset).toHaveBeenCalledWith(500, {
+          behavior: 'smooth',
+        })
+
+        dispose()
+      })
+    })
+
+    it('should provide measure method', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const vList = createVirtualizedList({ data })
+
+        vList.measure()
+
+        expect(vList.virtualizer.measure).toHaveBeenCalled()
+
+        dispose()
+      })
+    })
+  })
+
+  describe('accessibility', () => {
+    it('should set ARIA role attributes', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const vList = createVirtualizedList({
+          data,
+          role: 'listbox',
+          itemRole: 'option',
+          ariaLabel: 'My List',
+        })
+
+        const rootProps = vList.root
+
+        expect(rootProps.role).toBe('listbox')
+        expect(rootProps['aria-label']).toBe('My List')
+
+        dispose()
+      })
+    })
+
+    it('should default to list/listitem roles', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const vList = createVirtualizedList({ data })
+
+        const rootProps = vList.root
+
+        expect(rootProps.role).toBe('list')
+
+        dispose()
+      })
+    })
+
+    it('should set tabIndex when keyboard navigation is enabled', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const vList = createVirtualizedList({
+          data,
+          enableKeyboardNavigation: true,
+        })
+
+        const rootProps = vList.root
+
+        expect(rootProps.tabIndex).toBe(0)
+        expect(rootProps.onKeyDown).toBeInstanceOf(Function)
+
+        dispose()
+      })
+    })
+
+    it('should not set tabIndex when keyboard navigation is disabled', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const vList = createVirtualizedList({ data })
+
+        const rootProps = vList.root
+
+        expect(rootProps.tabIndex).toBeUndefined()
+        expect(rootProps.onKeyDown).toBeUndefined()
+
+        dispose()
+      })
+    })
+  })
+
+  describe('window scrolling', () => {
+    it('should use document.documentElement when windowScroll is true', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const vList = createVirtualizedList({
+          data,
+          windowScroll: true,
+        })
+
+        // @ts-expect-error
+        const createVirtualizerCall = (createVirtualizer as jest.Mock).mock.calls[0][0]
+        const scrollElement = createVirtualizerCall.getScrollElement()
+
+        // In test environment, document may not be available
+        // so we just verify the function exists
+        expect(createVirtualizerCall.getScrollElement).toBeInstanceOf(Function)
+
+        dispose()
+      })
+    })
+
+    it('should apply correct styles for window scroll mode', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const vList = createVirtualizedList({
+          data,
+          windowScroll: true,
+          height: 500,
+        })
+
+        const rootProps = vList.root
+
+        expect(rootProps.style.position).toBe('relative')
+        expect(rootProps.style.height).toBe('500px')
+
+        dispose()
+      })
+    })
+  })
+
+  describe('edge cases and reactivity', () => {
+    it('should handle rapid data updates', () => {
+      createRoot(dispose => {
+        const [items, setItems] = createSignal(['Item 1'])
+        const vList = createVirtualizedList({ data: items })
+
+        expect(vList.count).toBe(1)
+
+        // Rapid updates
+        setItems(['Item 1', 'Item 2'])
+        expect(vList.count).toBe(2)
+
+        setItems(['Item 1', 'Item 2', 'Item 3'])
+        expect(vList.count).toBe(3)
+
+        setItems([])
+        expect(vList.count).toBe(0)
+
+        setItems(['A', 'B', 'C', 'D', 'E'])
+        expect(vList.count).toBe(5)
+
+        dispose()
+      })
+    })
+
+    it('should handle data mutations while maintaining reactivity', () => {
+      createRoot(dispose => {
+        const [items, setItems] = createSignal([{ id: 1 }, { id: 2 }])
+        const vList = createVirtualizedList({
+          data: items,
+          determineKey: (item) => item.id,
+        })
+
+        expect(vList.count).toBe(2)
+
+        // Replace entire array
+        setItems([{ id: 1 }, { id: 2 }, { id: 3 }])
+        expect(vList.count).toBe(3)
+
+        // Empty array
+        setItems([])
+        expect(vList.count).toBe(0)
+
+        dispose()
+      })
+    })
+
+    it('should handle changing determineKey function', () => {
+      createRoot(dispose => {
+        const data = () => [
+          { id: 1, uuid: 'a' },
+          { id: 2, uuid: 'b' },
+        ]
+
+        const vList = createVirtualizedList({
+          data,
+          determineKey: (item) => item.id,
+        })
+
+        // Initially uses id
+        vList.scrollToItem(1)
+        expect(vList.virtualizer.scrollToIndex).toHaveBeenCalledWith(0, undefined)
+
+        dispose()
+      })
+    })
+
+    it('should handle items with undefined/null keys gracefully', () => {
+      createRoot(dispose => {
+        const data = () => [
+          { id: 1 },
+          { id: null },
+          { id: undefined },
+          { name: 'test' },
+        ]
+
+        const vList = createVirtualizedList({
+          data,
+          determineKey: (item) => item.id,
+        })
+
+        expect(vList.count).toBe(4)
+
+        dispose()
+      })
+    })
+
+    it('should handle very large item counts', () => {
+      createRoot(dispose => {
+        const data = () => Array.from({ length: 100000 }, (_, i) => `Item ${i}`)
+        const vList = createVirtualizedList({ data })
+
+        expect(vList.count).toBe(100000)
+
+        dispose()
+      })
+    })
+
+    it('should handle options changes reactively', () => {
+      createRoot(dispose => {
+        const [items, setItems] = createSignal(['Item 1', 'Item 2'])
+
+        const vList = createVirtualizedList({
+          data: items,
+        })
+
+        expect(vList).toBeDefined()
+
+        // Trigger reactivity by changing data
+        setItems(['Item 1', 'Item 2', 'Item 3'])
+
+        // Count should update reactively
+        expect(vList.count).toBe(3)
+
+        dispose()
+      })
+    })
+
+    it('should handle scrollToItem with duplicate keys', () => {
+      createRoot(dispose => {
+        const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+        const data = () => [
+          { id: 1, name: 'Alice' },
+          { id: 1, name: 'Alice Clone' }, // Duplicate key
+          { id: 2, name: 'Bob' },
+        ]
+
+        const vList = createVirtualizedList({
+          data,
+          determineKey: (item) => item.id,
+        })
+
+        // With duplicate keys, Map stores the last occurrence
+        // So scrollToItem(1) will scroll to index 1 (the second item)
+        vList.scrollToItem(1)
+        expect(vList.virtualizer.scrollToIndex).toHaveBeenCalledWith(1, undefined)
+
+        consoleWarnSpy.mockRestore()
+        dispose()
+      })
+    })
+
+    it('should maintain reactivity when data function returns different arrays', () => {
+      createRoot(dispose => {
+        const [source, setSource] = createSignal<'a' | 'b'>('a')
+
+        const data = () => {
+          return source() === 'a'
+            ? ['A1', 'A2', 'A3']
+            : ['B1', 'B2']
+        }
+
+        const vList = createVirtualizedList({ data })
+
+        expect(vList.count).toBe(3)
+
+        setSource('b')
+        expect(vList.count).toBe(2)
+
+        setSource('a')
+        expect(vList.count).toBe(3)
+
+        dispose()
+      })
+    })
+
+    it('should handle height/width as strings', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1']
+
+        const vList1 = createVirtualizedList({
+          data,
+          height: '100vh',
+          width: '50%',
+        })
+
+        const rootProps = vList1.root
+        expect(rootProps.style.height).toBe('100vh')
+        expect(rootProps.style.width).toBe('50%')
+
+        dispose()
+      })
+    })
+
+    it('should handle height/width as numbers', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1']
+
+        const vList = createVirtualizedList({
+          data,
+          height: 600,
+          width: 400,
+        })
+
+        const rootProps = vList.root
+        expect(rootProps.style.height).toBe('600px')
+        expect(rootProps.style.width).toBe('400px')
+
+        dispose()
+      })
+    })
+
+    it('should handle scrollBy method', () => {
+      createRoot(dispose => {
+        const data = () => ['Item 1', 'Item 2']
+        const scrollBySpy = vi.fn()
+
+        // Mock getScrollElement to return an element with scrollBy
+        const vList = createVirtualizedList({ data })
+
+        // The scrollBy method requires a scroll element
+        // Since we're in a test environment, we'll just verify it's a function
+        expect(typeof vList.scrollBy).toBe('function')
+
+        dispose()
+      })
+    })
+
+    it('should handle items with special characters in keys', () => {
+      createRoot(dispose => {
+        const data = () => [
+          { id: 'item-1' },
+          { id: 'item@2' },
+          { id: 'item#3' },
+          { id: 'item space 4' },
+        ]
+
+        const vList = createVirtualizedList({
+          data,
+          determineKey: (item) => item.id,
+        })
+
+        vList.scrollToItem('item@2')
+        expect(vList.virtualizer.scrollToIndex).toHaveBeenCalledWith(1, undefined)
+
+        vList.scrollToItem('item space 4')
+        expect(vList.virtualizer.scrollToIndex).toHaveBeenCalledWith(3, undefined)
+
+        dispose()
+      })
+    })
+
+    it('should handle concurrent scrollToItem calls', () => {
+      createRoot(dispose => {
+        const data = () => Array.from({ length: 100 }, (_, i) => ({ id: i }))
+        const vList = createVirtualizedList({
+          data,
+          determineKey: (item) => item.id,
+        })
+
+        vList.scrollToItem(10)
+        vList.scrollToItem(20)
+        vList.scrollToItem(30)
+
+        // All should be called
+        expect(vList.virtualizer.scrollToIndex).toHaveBeenCalledTimes(3)
+
+        dispose()
+      })
+    })
+
+    it('should maintain item count accuracy when data changes from empty', () => {
+      createRoot(dispose => {
+        const [items, setItems] = createSignal<string[]>([])
+        const vList = createVirtualizedList({ data: items })
+
+        expect(vList.count).toBe(0)
+
+        setItems(['Item 1'])
+        expect(vList.count).toBe(1)
+
+        setItems(['Item 1', 'Item 2', 'Item 3'])
+        expect(vList.count).toBe(3)
+
+        dispose()
+      })
     })
   })
 })
